@@ -46,6 +46,17 @@ class Perceptron(LinearModel):
         other arguments are ignored
         """
         # Q1.1a
+        print(self.W.shape)
+        print("x_i", x_i)
+        print("y_i", y_i)
+        print(kwargs.get('learning_rate', 0.001))
+        scores = np.dot(self.W, x_i)
+        predicted_label = np.argmax(scores) 
+        
+        if predicted_label != y_i:
+            # Update weights only if the prediction is incorrect
+            self.W[y_i, :] += kwargs.get('learning_rate', 0.001) * x_i
+            self.W[predicted_label, :] -= kwargs.get('learning_rate', 0.001) * x_i
         raise NotImplementedError
 
 
