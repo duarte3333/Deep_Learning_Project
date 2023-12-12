@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 
 # Deep Learning Homework 1
+#run on terminal:
+#   Q 2.1:
+#       python hw1-q2.py logistic_regression -batch_size 16 -learning_rate 0.001
+
+#   Q 2.2 a):
+#       python hw1-q2.py mlp -batch_size 16 -learning_rate 0.1 -hidden_size 200 -layers 2 -dropout 0
 
 import argparse
 
@@ -8,6 +14,7 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from matplotlib import pyplot as plt
+import time
 
 import utils
 
@@ -26,7 +33,13 @@ class LogisticRegression(nn.Module):
         pytorch to make weights and biases, have a look at
         https://pytorch.org/docs/stable/nn.html
         """
+
+
+
         super().__init__()
+        self.layer = nn.Linear(n_features, n_classes) #this applies a linear transformation: y= xW + b
+
+
         # In a pytorch module, the declarations of layers needs to come after
         # the super __init__ line, otherwise the magic doesn't work.
 
@@ -44,7 +57,12 @@ class LogisticRegression(nn.Module):
         forward pass -- this is enough for it to figure out how to do the
         backward pass.
         """
-        raise NotImplementedError
+        out = self.layer(x) #applies out = Wx + b, with the current calculated weights and biases
+
+        #out = nn.functional.softmax(out, dim=1) #not needed as nn.crossentropyLoss does this
+
+
+        return out
 
 
 # Q2.2
@@ -65,8 +83,23 @@ class FeedforwardNetwork(nn.Module):
         includes modules for several activation functions and dropout as well.
         """
         super().__init__()
-        # Implement me!
-        raise NotImplementedError
+        #These parameters, droupout function and activation functions will be used in the foward method
+        self.nrlayers = layers 
+        self.dropout = nn.Dropout(dropout)
+        if activation_type == 'relu':
+            self.activation=nn.ReLU()
+        else: #tanh
+            self.activation=nn.Tanh()
+        
+        #layers of the neural network:
+        self.layers = []
+        self.layers.append(nn.Linear(n_features,hidden_size))
+        for i in range(layers):
+            self.layers.append(nn.Linear(hidden_size,hidden_size) )
+        self.outputLayer =nn.Linear(hidden_size,n_classes)
+
+
+
 
     def forward(self, x, **kwargs):
         """
@@ -76,7 +109,16 @@ class FeedforwardNetwork(nn.Module):
         the output logits from x. This will include using various hidden
         layers, pointwise nonlinear functions, and dropout.
         """
-        raise NotImplementedError
+        for layer in self.layers:
+            x = layer(x)
+            x=self.activation(x)
+            x= self.dropout(x) #when doing evaluation - model.eval() makes the dropout useless, so it does not affect predictions
+            
+        #do not do droupout on output layer
+        out = self.activation(self.outputLayer(x))
+        return out
+
+
 
 
 def train_batch(X, y, model, optimizer, criterion, **kwargs):
@@ -97,7 +139,22 @@ def train_batch(X, y, model, optimizer, criterion, **kwargs):
     This function should return the loss (tip: call loss.item()) to get the
     loss as a numerical value that is not part of the computation graph.
     """
-    raise NotImplementedError
+    losses =[]
+    for x_batch, y_target in zip(X, y):
+
+        # clear the gradients
+        optimizer.zero_grad()
+        # compute the model output
+        yhat = model(x_batch)
+        # calculate loss
+        loss = criterion(yhat, y_target)
+        losses.append(loss.item())
+        # credit assignment
+        loss.backward()
+        # update model weights
+        optimizer.step()
+
+    return sum(losses)/len(losses) #average of loss for this batch
 
 
 def predict(model, X):
@@ -147,7 +204,7 @@ def main():
     parser.add_argument('-epochs', default=20, type=int,
                         help="""Number of epochs to train for. You should not
                         need to change this value for your plots.""")
-    parser.add_argument('-batch_size', default=1, type=int,
+    parser.add_argument('-batch_size', default=16, type=int,
                         help="Size of training batch.")
     parser.add_argument('-learning_rate', type=float, default=0.01)
     parser.add_argument('-l2_decay', type=float, default=0)
@@ -203,6 +260,7 @@ def main():
     train_losses = []
     valid_losses = []
     valid_accs = []
+    start_time =time.time()
     for ii in epochs:
         print('Training epoch {}'.format(ii))
         epoch_train_losses = []
@@ -220,9 +278,11 @@ def main():
         train_losses.append(epoch_train_loss)
         valid_losses.append(val_loss)
         valid_accs.append(val_acc)
-
+    delta_time= time.time() - start_time
+    print(f'Time to train: {delta_time}s')
     _, test_acc = evaluate(model, test_X, test_y, criterion)
     print('Final Test acc: %.4f' % (test_acc))
+    
     # plot
     if opt.model == "logistic_regression":
         config = (
