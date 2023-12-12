@@ -46,29 +46,58 @@ class Perceptron(LinearModel):
         other arguments are ignored
         """
         # Q1.1a
-        print(self.W.shape)
-        print("x_i", x_i)
-        print("y_i", y_i)
-        print(kwargs.get('learning_rate', 0.001))
-        scores = np.dot(self.W, x_i)
-        predicted_label = np.argmax(scores) 
-        
+        y_predict = np.dot(self.W, x_i) 
+        predicted_label = np.argmax(y_predict)
+
         if predicted_label != y_i:
-            # Update weights only if the prediction is incorrect
-            self.W[y_i, :] += kwargs.get('learning_rate', 0.001) * x_i
-            self.W[predicted_label, :] -= kwargs.get('learning_rate', 0.001) * x_i
-        raise NotImplementedError
+            learning_rate = kwargs.get('learning_rate', 0.001)
+            self.W[y_i, :] += learning_rate * x_i
+            self.W[predicted_label, :] -= learning_rate * x_i
+            
+#Worse than sklearn because it doesn't shuffle the data, so it's not stochastic.
+#Why sklearn is so better? Use convergence acceleration methods and a better stopping criterion.
 
 
 class LogisticRegression(LinearModel):
+
+    def softmax(self, y_predict):
+        return np.exp(y_predict) / np.sum(np.exp(y_predict), axis=0)
+
     def update_weight(self, x_i, y_i, learning_rate=0.001):
         """
         x_i (n_features): a single training example
         y_i: the gold label for that example
         learning_rate (float): keep it at the default value for your plots
         """
-        # Q1.1b
-        raise NotImplementedError
+        # Calculate the predicted probabilities using softmax
+        y_predict = np.expand_dims(self.W.dot(x_i), axis = 1) #expand_dims(): explicitly represent the result as a column vector.
+        
+        # One-hot encode true label (num_labels x 1).
+        y_i_one_hot = np.zeros((np.size(self.W, 0), 1)) #4x1
+        y_i_one_hot[int(y_i)] = 1
+        
+        predicted_probs = self.softmax(y_predict)
+        
+        # Calculate the error
+        error = predicted_probs - y_i_one_hot #ex: [0.25, 0.25, 0.25, 0.25] - [0, 0, 1, 0]
+        
+        # Update weights using stochastic gradient descent
+        # How much the loss would change with respect to each weight.
+        loss_gradient = np.dot(error, np.expand_dims(x_i, axis=1).T) #4x1 * 1x784 = 4x784 (4 classes by 784 features)
+        self.W -= learning_rate * loss_gradient
+
+        # Calculate and return the negative log-likelihood loss
+        loss = -np.sum(y_i * np.log(predicted_probs)) #-SUM(log(softmax(y_predict))) ->cross entropy loss
+        return loss
+    
+    # By using the expand_dims() - case 1:
+    # Shape:
+    #     Case 1 results in a 2D array with shape (num_classes, 1).
+    #     Case 2 results in a 1D array with shape (num_classes,).
+
+    # Dimensionality:
+    #     Case 1 introduces an additional dimension, making it a column vector.
+    #     Case 2 is a flat array, essentially a row vector.
 
 
 class MLP(object):
