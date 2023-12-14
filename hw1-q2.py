@@ -111,17 +111,12 @@ class FeedforwardNetwork(nn.Module):
         """
         for layer in self.layers:
             x = layer(x)
-            x=self.activation(x)
+            x= self.activation(x)
             x= self.dropout(x) #when doing evaluation - model.eval() makes the dropout useless, so it does not affect predictions
             
         #do not do droupout on output layer
         out = self.activation(self.outputLayer(x))
         return out
-
-
-
-
-
 
 def train_batch(X, y, model, optimizer, criterion, **kwargs):
     """

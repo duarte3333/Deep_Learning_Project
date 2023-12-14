@@ -122,16 +122,17 @@ class MLP(object):
         return np.maximum(0, x)
     
     def softmax(self, y_predict):
-        return np.exp(y_predict) / np.sum(np.exp(y_predict))
+        max = np.max(y_predict)
+        return np.exp(y_predict - max) / np.sum(np.exp(y_predict - max))
     
     def predict(self, X):
         # Compute the forward pass of the network.
-        h0 = X.T
-        z1 = self.W1.dot(h0) + self.b1
-        h1 = self.relu(z1)
-        z2 = self.W2.dot(h1) + self.b2
-        predicted_probs = self.softmax(z2)
-        predicted_labels = predicted_probs.argmax(axis=0)
+        predicted_labels = []
+        for x_train in X:
+            output, _ = self.forward(x_train, self.weights, self.biases)
+            predicted_probs = self.softmax(output)
+            label = predicted_probs.argmax(axis=0).tolist()
+            predicted_labels.append(label)
         return predicted_labels
     
     def evaluate(self, X, y):
@@ -140,7 +141,7 @@ class MLP(object):
         y (n_examples): gold labels
         """
         # Identical to LinearModel.evaluate()
-        y_hat = self.predict(X)
+        y_hat = self.predict(X) #y_hat: 1x97477
         n_correct = (y == y_hat).sum()
         n_possible = y.shape[0]
         return n_correct / n_possible
@@ -148,7 +149,7 @@ class MLP(object):
     def forward(self, x, weights, biases):
         num_layers = len(weights) #2
         hiddens = []
-        g = np.tanh
+        #g = np.tanh
         # compute hidden layers
         #print("x_shape", x.shape, "weights_shape", weights[0].shape, "biases_shape", biases[0].shape)
         for i in range(num_layers):
@@ -156,7 +157,7 @@ class MLP(object):
                 #print("weights: ", weights[i].shape, "h: ", h.shape, "biases: ", biases[i].shape)
                 z = weights[i].dot(h) + biases[i]
                 if i < num_layers-1:  # Assuming the output layer has no activation.
-                    hiddens.append(g(z))
+                    hiddens.append(self.relu(z))
                 #print("z: ", z.shape)
         #compute output
         output = z
@@ -165,9 +166,9 @@ class MLP(object):
     def compute_loss(self, output, y):
         # compute loss
         #print("y: ", y.shape)
-        probs = np.exp(output) / np.sum(np.exp(output))
+        probs = self.softmax(output)
         #print("probs: ", probs.shape)
-        loss = -y.dot(np.log(probs))
+        loss = -y.dot(np.log(probs + 1e-8))
         
         return loss  
     
@@ -176,8 +177,8 @@ class MLP(object):
         #g = np.tanh
         z = output
 
-        #probs = self.softmax(z)
-        probs = np.exp(output) / np.sum(np.exp(output))
+        probs = self.softmax(z)
+        #probs = np.exp(output) / np.sum(np.exp(output))
         #print("x_train: ", x.shape)
         #print("y_train: ", y.shape, "probs: ", probs.shape)
         grad_z = probs - y
@@ -198,7 +199,7 @@ class MLP(object):
             grad_h = weights[i].T.dot(grad_z)
 
             # Gradient of hidden layer below before activation.
-            grad_z = grad_h * (1-h**2)   # Grad of loss wrt z3.
+            grad_z = grad_h * 1 #CASO menor que 0
 
         # Making gradient vectors have the correct order
         grad_weights.reverse()
@@ -215,8 +216,12 @@ class MLP(object):
         """
         Dont forget to return the loss of the epoch.
         """
+        #X_train_all, X_test, y_train_all, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
         #y = np.expand_dims(y, axis=1)
+        #self.X_test_all = X_test
         y = self.one_hot(y)
+        #y_train_all = self.one_hot(y_train_all)
         #print("X: ", X.shape, "y: ", y.shape, "W1: ", self.W1.shape, "W2: ", self.W2.shape)
 
         num_layers = len(self.weights)
