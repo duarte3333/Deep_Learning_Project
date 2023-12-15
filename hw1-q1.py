@@ -178,9 +178,6 @@ class MLP(object):
         z = output
 
         probs = self.softmax(z)
-        #probs = np.exp(output) / np.sum(np.exp(output))
-        #print("x_train: ", x.shape)
-        #print("y_train: ", y.shape, "probs: ", probs.shape)
         grad_z = probs - y
         #print("grad_z: ", grad_z.shape)
         
@@ -197,9 +194,11 @@ class MLP(object):
             
             # Gradient of hidden layer below.
             grad_h = weights[i].T.dot(grad_z)
-
+            
             # Gradient of hidden layer below before activation.
-            grad_z = grad_h * 1 #CASO menor que 0
+            derivative_relu = (h > 0).astype(float) #relu derivative is 1 if h > 0, 0 otherwise
+            grad_z = grad_h * derivative_relu
+          
 
         # Making gradient vectors have the correct order
         grad_weights.reverse()
