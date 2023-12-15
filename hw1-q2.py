@@ -2,21 +2,38 @@
 
 # Deep Learning Homework 1
 #run on terminal:
-#   Q 2.1:
-#       python hw1-q2.py logistic_regression -batch_size 16 -learning_rate 0.001
+#   Q 2.1: tune lr 0,001; 0,01; 0,1
+#DONE       python hw1-q2.py logistic_regression -batch_size 16 -learning_rate 0.001  \\\\ Time to train: 65.14546036720276s Final Test acc: 0.6503
+#DONE       python hw1-q2.py logistic_regression -batch_size 16 -learning_rate 0.01    \\\\ Time to train: 64.97506856918335s Final Test acc: 0.6200
+#DONE       python hw1-q2.py logistic_regression -batch_size 16 -learning_rate 0.1      \\\\ Time to train: 62.32269048690796s Final Test acc: 0.5577
+
 
 #   Q 2.2 a):
-#       python hw1-q2.py mlp -batch_size 16 -learning_rate 0.1 -hidden_size 200 -layers 2 -dropout 0
+#DONE 2      python hw1-q2.py mlp -batch_size 1024 -learning_rate 0.1 -hidden_size 200 -layers 2 -dropout 0   \\\\ Time to train: 37.40532374382019s Final Test acc: 0.7202 Valid acc 0.6861
+#DONE 2      python hw1-q2.py mlp -batch_size 16 -learning_rate 0.1 -hidden_size 200 -layers 2 -dropout 0     \\\\\ Time to train: 151.2109649181366s Final Test acc: 0.7429 valid accu 0.8195
+
+
+#Q 2.2 b) 1,0:1,0:01 and 0:001 LR
+#DONE  2     python hw1-q2.py mlp -batch_size 16 -learning_rate 0.001 -hidden_size 200 -layers 2 -dropout 0   \\\\\\ Time to train: 167.74692392349243s Final Test acc: 0.7391  Valid accu: 0.7230
+#DONE  2     python hw1-q2.py mlp -batch_size 16 -learning_rate 0.01 -hidden_size 200 -layers 2 -dropout 0     \\\\\ Time to train: 166.39 Final Test acc: 0.7486 valid accu: 0.8200
+#DONE  2     python hw1-q2.py mlp -batch_size 16 -learning_rate 0.1 -hidden_size 200 -layers 2 -dropout 0      \\\\\\ equal to Q2a)
+#DONE  2     python hw1-q2.py mlp -batch_size 16 -learning_rate 1 -hidden_size 200 -layers 2 -dropout 0        \\\\\\ Time to train: 169.69727087020874s Final Test acc: 0.4726 valid accu:0.4721
+
+#Q 2.2 c) batch size 256 ; 150 epochs
+#DONE  2     python hw1-q2.py mlp -epochs 150 -batch_size 256 -learning_rate 0.1 -hidden_size 200 -layers 2 -dropout 0   \\\\Time to train: 482.73597240448s Final Test acc: 0.7561 Final valid accu: 0.8651
+#L2 regularization parameter set to 0:0001 and the other with a dropout probability of 0:2.
+#DONE  2     python hw1-q2.py mlp -epochs 150 -batch_size 256 -learning_rate 0.1 -hidden_size 200 -layers 2 -dropout 0.2  \\\Time to train: 450.4556119441986s Final Test acc: 0.7845 Final valid accu: 0.8596
+#DONE  2     python hw1-q2.py mlp -epochs 150 -batch_size 256 -learning_rate 0.1 -hidden_size 200 -layers 2 -dropout 0 -l2_decay 0.0001   \\\ Time to train: 431.05990076065063s Final Test acc: 0.7656 Final valid accu:0.8536
+
 
 import argparse
-
 import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from matplotlib import pyplot as plt
 import time
-
 import utils
+
 
 
 # Q2.1
@@ -84,7 +101,6 @@ class FeedforwardNetwork(nn.Module):
         """
         super().__init__()
         #These parameters, droupout function and activation functions will be used in the foward method
-        self.nrlayers = layers 
         self.dropout = nn.Dropout(dropout)
         if activation_type == 'relu':
             self.activation=nn.ReLU()
@@ -92,7 +108,8 @@ class FeedforwardNetwork(nn.Module):
             self.activation=nn.Tanh()
         
         #layers of the neural network:
-        self.layers = []
+        self.layers = nn.ModuleList()
+
         self.layers.append(nn.Linear(n_features,hidden_size))
         for i in range(layers):
             self.layers.append(nn.Linear(hidden_size,hidden_size) )
@@ -115,7 +132,7 @@ class FeedforwardNetwork(nn.Module):
             x= self.dropout(x) #when doing evaluation - model.eval() makes the dropout useless, so it does not affect predictions
             
         #do not do droupout on output layer
-        out = self.activation(self.outputLayer(x))
+        out = self.outputLayer(x)
         return out
 
 
@@ -141,23 +158,19 @@ def train_batch(X, y, model, optimizer, criterion, **kwargs):
     This function should return the loss (tip: call loss.item()) to get the
     loss as a numerical value that is not part of the computation graph.
     """
-    losses =[]
-    for x_batch, y_target in zip(X, y):
+   
+    # clear the gradients
+    optimizer.zero_grad()
+    # compute the model output
+    yhat = model(X)
+    # calculate loss
+    loss = criterion(yhat, y)
+    # credit assignment
+    loss.backward()
+    # update model weights
+    optimizer.step()
 
-        # clear the gradients
-        optimizer.zero_grad()
-        # compute the model output
-        yhat = model(x_batch)
-        # calculate loss
-        loss = criterion(yhat, y_target)
-        losses.append(loss.item())
-        # credit assignment
-        loss.backward()
-        # update model weights
-        optimizer.step()
-
-    return sum(losses)/len(losses) #average of loss for this batch
-
+    return loss
 
 def predict(model, X):
     """X (n_examples x n_features)"""
