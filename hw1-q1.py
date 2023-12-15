@@ -106,30 +106,142 @@ class MLP(object):
     # in main().
     def __init__(self, n_classes, n_features, hidden_size):
         # Initialize an MLP with a single hidden layer.
-        raise NotImplementedError
+        #loc is the mean, scale is the standard deviation, and size is the number of elements you want to generate.
+        #std = sqrt(0.01) = 0.1
+        self.W1 = np.random.normal(loc=0.1, scale=0.1, size=(hidden_size, n_features))
+        self.b1 = np.zeros((hidden_size))
+        self.W2 = np.random.normal(loc=0.1, scale=0.1, size=(n_classes, hidden_size))
+        self.b2 = np.zeros((n_classes))
+        self.weights = [self.W1, self.W2]
+        self.biases = [self.b1, self.b2]
+        self.n_classes = n_classes
+        self.n_features = n_features
+        self.hidden_size = hidden_size
 
+    def relu(self, x):
+        return np.maximum(0, x)
+    
+    def softmax(self, y_predict):
+        max = np.max(y_predict)
+        return np.exp(y_predict - max) / np.sum(np.exp(y_predict - max))
+    
     def predict(self, X):
-        # Compute the forward pass of the network. At prediction time, there is
-        # no need to save the values of hidden nodes, whereas this is required
-        # at training time.
-        raise NotImplementedError
-
+        # Compute the forward pass of the network.
+        predicted_labels = []
+        for x_train in X:
+            output, _ = self.forward(x_train, self.weights, self.biases)
+            predicted_probs = self.softmax(output)
+            label = predicted_probs.argmax(axis=0).tolist()
+            predicted_labels.append(label)
+        return predicted_labels
+    
     def evaluate(self, X, y):
         """
         X (n_examples x n_features)
         y (n_examples): gold labels
         """
         # Identical to LinearModel.evaluate()
-        y_hat = self.predict(X)
+        y_hat = self.predict(X) #y_hat: 1x97477
         n_correct = (y == y_hat).sum()
         n_possible = y.shape[0]
         return n_correct / n_possible
+    
+    def forward(self, x, weights, biases):
+        num_layers = len(weights) #2
+        hiddens = []
+        #g = np.tanh
+        # compute hidden layers
+        #print("x_shape", x.shape, "weights_shape", weights[0].shape, "biases_shape", biases[0].shape)
+        for i in range(num_layers):
+                h = x if i == 0 else hiddens[i-1]
+                #print("weights: ", weights[i].shape, "h: ", h.shape, "biases: ", biases[i].shape)
+                z = weights[i].dot(h) + biases[i]
+                if i < num_layers-1:  # Assuming the output layer has no activation.
+                    hiddens.append(self.relu(z))
+                #print("z: ", z.shape)
+        #compute output
+        output = z
+        return output, hiddens
+    
+    def compute_loss(self, output, y):
+        # compute loss
+        #print("y: ", y.shape)
+        probs = self.softmax(output)
+        #print("probs: ", probs.shape)
+        loss = -y.dot(np.log(probs + 1e-8))
+        
+        return loss  
+    
+    def backward(self, x, y, output, hiddens, weights):
+        num_layers = len(weights)
+        #g = np.tanh
+        z = output
 
+        probs = self.softmax(z)
+        grad_z = probs - y
+        #print("grad_z: ", grad_z.shape)
+        
+        grad_weights = []
+        grad_biases = []
+        
+        # Backpropagate gradient computations 
+        for i in range(num_layers-1, -1, -1): #(start, stop, step)
+            
+            # Gradient of hidden parameters.
+            h = x if i == 0 else hiddens[i-1]
+            grad_weights.append(grad_z[:, None].dot(h[:, None].T))
+            grad_biases.append(grad_z)
+            
+            # Gradient of hidden layer below.
+            grad_h = weights[i].T.dot(grad_z)
+            
+            # Gradient of hidden layer below before activation.
+            derivative_relu = (h > 0).astype(float) #relu derivative is 1 if h > 0, 0 otherwise
+            grad_z = grad_h * derivative_relu
+          
+
+        # Making gradient vectors have the correct order
+        grad_weights.reverse()
+        grad_biases.reverse()
+        return grad_weights, grad_biases
+    
+    def one_hot(self, y):
+        one_hot = np.zeros((np.size(y, 0), self.W2.shape[0]))
+        for i in range(np.size(y, 0)):
+            one_hot[i, y[i]] = 1
+        return one_hot
+    
     def train_epoch(self, X, y, learning_rate=0.001):
         """
         Dont forget to return the loss of the epoch.
         """
-        raise NotImplementedError
+        #X_train_all, X_test, y_train_all, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        #y = np.expand_dims(y, axis=1)
+        #self.X_test_all = X_test
+        y = self.one_hot(y)
+        #y_train_all = self.one_hot(y_train_all)
+        #print("X: ", X.shape, "y: ", y.shape, "W1: ", self.W1.shape, "W2: ", self.W2.shape)
+
+        num_layers = len(self.weights)
+        total_loss = 0
+        # For each observation and target
+        for x_train, y_train in zip(X, y): #x_train: 784x1, y_train: 4x1
+            # Compute forward pass
+            output, hiddens = self.forward(x_train, self.weights, self.biases) #output: 4x1
+            
+            # Compute Loss and Update total loss
+            loss = self.compute_loss(output, y_train) # Compute Loss and Update total loss
+            total_loss+=loss
+            
+            # Compute backpropagation
+            grad_weights, grad_biases = self.backward(x_train, y_train, output, hiddens, self.weights)
+            
+            # Update weights
+            for i in range(num_layers):
+                self.weights[i] -= learning_rate*grad_weights[i]
+                self.biases[i] -= learning_rate*grad_biases[i]
+        return total_loss
 
 
 def plot(epochs, train_accs, val_accs):
