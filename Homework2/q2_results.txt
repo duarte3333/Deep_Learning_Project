@@ -1,0 +1,45 @@
+Q2.2 - with pooling:
+    1. SGD - 0.1 - with max pool - 15 epochs - dropout 0.7 - batchsize=8
+    Training epoch 15
+    Training loss: 0.6148
+    Valid acc: 0.8192
+    Final Test acc: 0.7713
+    Number of trainable parameters:  224892
+
+    2. SGD - 0.01 - with max pool - 15 epochs - dropout 0.7 - batchsize=8
+    Training epoch 15
+    Training loss: 0.5411
+    Valid acc: 0.8655
+    Final Test acc: 0.8223
+    Number of trainable parameters:  224892
+
+    3. SGD - 0.001 - with max pool - 15 epochs - dropout 0.7 - batchsize=8
+    Training epoch 15
+    Training loss: 0.9560
+    Valid acc: 0.7720
+    Final Test acc: 0.7580
+    Number of trainable parameters:  224892
+
+
+Q2.3 - witout pooling:
+
+    1. SGD - 0.1 - with max pool - 15 epochs - dropout 0.7 - batchsize=8
+    Training epoch 15
+    Training loss: 0.6571
+    Valid acc: 0.7971
+    Final Test acc: 0.7543
+    Number of trainable parameters:  224892
+
+    2. SGD - 0.01 - with max pool - 15 epochs - dropout 0.7 - batchsize=8
+    Training epoch 15
+    Training loss: 0.6381
+    Valid acc: 0.8491
+    Final Test acc: 0.7996
+    Number of trainable parameters:  224892
+
+    3. SGD - 0.001 - with max pool - 15 epochs - dropout 0.7 - batchsize=8
+    Training epoch 15
+    Training loss: 1.0510
+    Valid acc: 0.6889
+    Final Test acc: 0.7127
+    Number of trainable parameters:  224892

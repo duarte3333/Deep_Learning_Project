@@ -16,46 +16,87 @@ import numpy as np
 import utils
 
 class CNN(nn.Module):
-    
+    #image size: 28x28
     def __init__(self, dropout_prob, no_maxpool=False):
         super(CNN, self).__init__()
         self.no_maxpool = no_maxpool
+        num_classes = 4
+        # Convolutional layers
         if not no_maxpool:
             # Implementation for Q2.1
-            raise NotImplementedError
+            self.conv1 = nn.Conv2d(in_channels=1, out_channels=8, kernel_size=3, stride=1, padding=1)
+            self.conv2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=3, stride=1, padding=0)
+            self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+            # The size of the image after two convolutions and two max pooling will be:
+            # (28 - 3 + 2*1) / 1 + 1 = 28 , conv1
+            # (28 - 2) / 2 + 1 = 14       , max pool1
+            # (14 - 3 + 2*0)/1 + 1 = 12   , conv2
+            # (12 - 2)/2 + 1 = 6          , max pool2
+            self.fc1_input_size = 16 * 6 * 6 #16 channels, 6x6 image
         else:
             # Implementation for Q2.2
-            raise NotImplementedError
+            self.conv1 = nn.Conv2d(in_channels=1, out_channels=8, kernel_size=3, stride=2, padding=1)
+            self.conv2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=3, stride=2, padding=0)
+            # The size of the image after two convolutions with stride of 2 will be:
+            # (28 + 3 - 2*1)/2 + 1 = 14  , conv1
+            # (14 - 3) / 2 + 1 = 6       , conv2
+            self.fc1_input_size = 16 * 6 * 6
         
+        # Fully connected layers
         # Implementation for Q2.1 and Q2.2
-        raise NotImplementedError
-        
+        self.fc1 = nn.Linear(in_features=self.fc1_input_size, out_features=320)
+        self.fc2 = nn.Linear(in_features=320, out_features=120)
+        self.fc3 = nn.Linear(in_features=120, out_features=num_classes)
+
+        # Dropout layer
+        self.drop = nn.Dropout(p=dropout_prob)
+
     def forward(self, x):
         # input should be of shape [b, c, w, h]
+        # Check if input needs to be reshaped from [b, 784] to [b, c, w, h]
+        #if x.dim() == 2 and x.shape[1] == 784:
+        # Reshape input to [b, c, w, h]
+        x = x.view([-1, 1, 28, 28])
+        #print("x_shape:", x.shape)
+        #print("starting shape - x_shape:", x.shape)
         # conv and relu layers
-
-        # max-pool layer if using it
-        if not self.no_maxpool:
-            raise NotImplementedError
+        x = F.relu(self.conv1(x))
+        #print("after conv1: ", x.shape)
         
+        if not self.no_maxpool:
+            # max-pool layer if using it
+            x = self.pool(x)
+            #print("max-pool1: ", x.shape)
+            
         # conv and relu layers
-        
-
-        # max-pool layer if using it
+        x = F.relu(self.conv2(x))
+        #print("after conv2: ", x.shape)
         if not self.no_maxpool:
-            raise NotImplementedError
+            # max-pool layer if using it
+            x = self.pool(x)
+            
+        #print("after max-pool2", x.shape)
         
         # prep for fully connected layer + relu
+        # Flatten the tensor for the fully connected layer
+        x = x.view(-1, self.fc1_input_size)
         
+        # Fully connected layer 1 + relu
+        x = F.relu(self.fc1(x))
+
         # drop out
         x = self.drop(x)
 
-        # second fully connected layer + relu
-        
+        # Fully connected layer 2 + relu
+        x = F.relu(self.fc2(x))
+
         # last fully connected layer
         x = self.fc3(x)
-        
-        return F.log_softmax(x,dim=1)
+
+        return F.log_softmax(x, dim=1)
+    
+    ##train your model for 15 epochs using SGD tuning only the learning rate on your validation
+    ##data, using the following values: 0.1, 0.01, 0.001.
 
 def train_batch(X, y, model, optimizer, criterion, **kwargs):
     """
@@ -65,6 +106,7 @@ def train_batch(X, y, model, optimizer, criterion, **kwargs):
     optimizer: optimizer used in gradient step
     criterion: loss function
     """
+    
     optimizer.zero_grad()
     out = model(X, **kwargs)
     loss = criterion(out, y)
@@ -102,13 +144,11 @@ def plot(epochs, plottable, ylabel='', name=''):
 
 
 def get_number_trainable_params(model):
-    ## TO IMPLEMENT - REPLACE return 0
-    return 0
-
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-epochs', default=20, type=int,
+    parser.add_argument('-epochs', default=15, type=int,
                         help="""Number of epochs to train for. You should not
                         need to change this value for your plots.""")
     parser.add_argument('-batch_size', default=8, type=int,
