@@ -1,5 +1,5 @@
 ## What was learned?
-The tasks across both homework assignments require proficiency in implementing various machine learning and deep learning algorithms, including perceptrons, logistic regression, multi-layer perceptrons, convolutional neural networks, and transformers, using both low-level libraries like NumPy and high-level frameworks such as PyTorch.
+The tasks across both homework assignments require proficiency in implementing various machine learning and deep learning algorithms, including perceptrons, logistic regression, multi-layer perceptrons, convolutional neural networks, and transformers, using both low-level libraries like NumPy and high-level frameworks such as PyTorch. The project was done by me and @alex
 
 ## Homework 1
 
